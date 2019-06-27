@@ -20,7 +20,7 @@ class PublicTagsApiTests(TestCase):
 
     def test_login_required(self):
         """Test that login is required for retrieving tags"""
-        res = self.client.get(TAGS_URL)
+        res = self.client.get(TAGS_URL) #This would make a unauthorized request
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -36,11 +36,11 @@ class PrivateTagsApiTests(TestCase):
         self.client.force_authenticate(self.user)
 
     def test_retrieve_tags(self):
-        """Test retrieving  tags"""
+        """Test retrieving  tags for Authorized user"""
         Tag.objects.create(user=self.user, name='Vegan')
         Tag.objects.create(user=self.user, name='Dessert')
 
-        res = self.client.get(TAGS_URL)
+        res = self.client.get(TAGS_URL) #This would make a http get request to the url which should return the tags
 
         tags = Tag.objects.all().order_by('-name')
         serializer = TagSerializer(tags, many=True)
@@ -56,7 +56,7 @@ class PrivateTagsApiTests(TestCase):
         Tag.objects.create(user=user2, name='Fruity')
         tag = Tag.objects.create(user=self.user, name='Comfort Food')
 
-        res = self.client.get(TAGS_URL)
+        res = self.client.get(TAGS_URL) #res basically means request check again not sure
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data), 1)
@@ -70,10 +70,10 @@ class PrivateTagsApiTests(TestCase):
         exists = Tag.objects.filter(
             user = self.user,
             name = payload['name']
-        ).exists()
+        ).exists()                      #This is provide a boolean value if the tag exists or not exist
         self.assertTrue(exists)
 
-    def test_create_tag_invalid(self):
+    def test_create_tag_invalid(self): 
         """Test creating a new tag with invalid payload"""
         payload = {'name':''}
         res = self.client.post(TAGS_URL, payload)
