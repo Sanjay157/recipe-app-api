@@ -32,7 +32,7 @@ class IngredientViewSet(BaseRecipeAttrViewSet):
     serializer_class = serializers.IngredientSerializer
     
 """Here since TagViewSet and IngredientViewSet classes had similar codes in common a BaseRecipeAttrViewSet was written and 
-            hold the common codes"""
+            it hold the common codes"""
 
 
 
