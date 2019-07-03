@@ -43,9 +43,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
     authentication_classes= (TokenAuthentication,)
     permission_classes=(IsAuthenticated,)
 
+    def _params_to_ints(self, qs):  #by defualt every function is public and can't be made private but in order for ther user to know it is private it is common convention to use undescore(_) first in the function name
+        """Convert a list  of string IDs to a list of integers"""
+        """The below function does something like this -our_string ='1,2,3'
+                                                        our_string_list=['1','2','3']"""
+        return [int(str_id) for str_id in qs.split(',')]    
+
     def get_queryset(self):
         """Retrieve the recipe for authenticated user"""
-        return self.queryset.filter(user=self.request.user)
+        tags = self.request.query_params.get('tags')
+        ingredients = self.request.query_params.get('ingredients')
+        queryset=self.queryset
+        if tags:
+            tag_ids=self._params_to_ints(tags)
+            queryset=queryset.filter(tags__id__in=tag_ids)  
+        if ingredients:
+            ingredient_ids=self._params_to_ints(ingredients)
+            queryset=queryset.filter(ingredients__id__in=ingredient_ids)
+
+        return queryset.filter(user=self.request.user)
 
     def get_serializer_class(self):
         """Return appropriate serializer class"""
