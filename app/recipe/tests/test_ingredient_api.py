@@ -5,11 +5,11 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Ingredient
+from core.models import Ingredient, Recipe
 
 from recipe.serializers import IngredientSerializer
 
-INGREDIENT_URL = reverse('recipe:ingredient-list')
+INGREDIENTS_URL = reverse('recipe:ingredient-list')
 
 class PublicIngredientsApiTests(TestCase):
     """Test the publickey available ingredients API"""
@@ -19,7 +19,7 @@ class PublicIngredientsApiTests(TestCase):
     
     def test_login_required(self):
         """Test that the login is required to access the endpoint"""
-        res = self.client.get(INGREDIENT_URL)
+        res = self.client.get(INGREDIENTS_URL)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -39,7 +39,7 @@ class PrivateIngredientsApiTests(TestCase):
         Ingredient.objects.create(user=self.user, name='Kale')
         Ingredient.objects.create(user=self.user, name='Salt')
 
-        res = self.client.get(INGREDIENT_URL)
+        res = self.client.get(INGREDIENTS_URL)
 
         ingredients = Ingredient.objects.all().order_by('-name')
         serializer = IngredientSerializer(ingredients, many=True)
@@ -57,7 +57,7 @@ class PrivateIngredientsApiTests(TestCase):
         Ingredient.objects.create(user=user2, name='Vinegar')
         ingredient = Ingredient.objects.create(user=self.user, name='Tumeric')
 
-        res = self.client.get(INGREDIENT_URL)
+        res = self.client.get(INGREDIENTS_URL)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data), 1)
@@ -66,7 +66,7 @@ class PrivateIngredientsApiTests(TestCase):
     def test_create_ingredient_successful(self):
         """Test create a new ingredient"""
         payload = {'name':'Cabbage'}
-        self.client.post(INGREDIENT_URL, payload)
+        self.client.post(INGREDIENTS_URL, payload)
         exists = Ingredient.objects.filter(
             user = self.user,
             name = payload['name'],
@@ -76,6 +76,25 @@ class PrivateIngredientsApiTests(TestCase):
     def test_create_ingredient_invalid(self):
         """Test creating invalid ingredient fails"""
         payload={'name':''}
-        res = self.client.post(INGREDIENT_URL, payload)
+        res = self.client.post(INGREDIENTS_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_retrieve_ingredient_assigned_to_recipes(self):
+        """Test filtering ingredients by those assigned to recipes"""
+        ingredient1=Ingredient.objects.create(user=self.user, name='Apples')
+        ingredient2=Ingredient.objects.create(user=self.user, name='Turkey')
+        recipe = Recipe.objects.create(
+            title='Apple crumble',
+            time_minutes=5,
+            price=10.00,
+            user=self.user
+        )
+        recipe.ingredients.add(ingredient1)
+
+        res=self.client.get(INGREDIENTS_URL, {'assigned_only':1})
+
+        serializer1=IngredientSerializer(ingredient1)
+        serializer2=IngredientSerializer(ingredient2)
+        self.assertIn(serializer1.data, res.data)
+        self.assertNotIn(serializer2.data, res.data)
